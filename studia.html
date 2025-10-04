@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 페이지</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    input, button { padding: 10px; margin: 10px; width: 200px; }
+    #loginResult { font-size: 18px; color: red; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>로그인</h1>
+
+  <!-- 이메일 및 비밀번호 입력 폼 -->
+  <input id="email" type="email" placeholder="이메일" required />
+  <input id="password" type="password" placeholder="비밀번호" required />
+  <button onclick="attemptLogin()">로그인</button>
+
+  <!-- 로그인 결과 표시 -->
+  <p id="loginResult"></p>
+
+  <script>
+    // Gist에서 users.json 파일 불러오기
+    const usersJsonUrl = 'https://gist.githubusercontent.com/Runelt/7d391bd9279f03ddf247b71c4a3f8f23/raw/bfd713edc6eff5b5a38f040e32f15c649d3db12a/users.json';  // Gist의 Raw URL로 교체
+
+    let users = [];  // Gist에서 가져온 사용자 목록을 저장할 배열
+
+    // Gist에서 사용자 목록을 로드하는 함수
+    async function loadUsers() {
+      try {
+        const response = await fetch(usersJsonUrl);
+        const data = await response.json();
+        users = data.users;  // users.json에서 users 배열을 가져옴
+      } catch (error) {
+        console.error('사용자 목록을 불러오는 중 오류 발생', error);
+      }
+    }
+
+    // 비밀번호를 SHA-256 해시하는 함수
+    async function sha256(str) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    // 로그인 시도 함수
+    async function attemptLogin() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        document.getElementById('loginResult').textContent = '이메일과 비밀번호를 모두 입력하세요.';
+        return;
+      }
+
+      // SHA-256 해시로 비밀번호 변환
+      const hashedPassword = await sha256(password);
+
+      // 사용자 목록에서 이메일과 해시된 비밀번호로 로그인 검증
+      const user = users.find(u => u.email === email && u.password === hashedPassword);
+
+      if (user) {
+        document.getElementById('loginResult').textContent = '로그인 성공!';
+        document.getElementById('loginResult').style.color = 'green';
+      } else {
+        document.getElementById('loginResult').textContent = '이메일 또는 비밀번호가 잘못되었습니다.';
+        document.getElementById('loginResult').style.color = 'red';
+      }
+    }
+
+    // 페이지 로드 시 사용자 목록 불러오기
+    loadUsers();
+  </script>
+</body>
+</html>
